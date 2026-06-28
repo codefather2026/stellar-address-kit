@@ -1,7 +1,6 @@
 package routing
 
 import (
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -9,15 +8,29 @@ import (
 	"github.com/Boxkit-Labs/stellar-address-kit/packages/core-go/muxed"
 )
 
-var digitsOnlyRegex = regexp.MustCompile(`^\d+$`)
-
+// normalizeUnsupportedMemoType canonicalizes a memo type string by lower-casing it
+// and stripping underscores and hyphens, then maps it to a known unsupported type.
+// Uses strings.Builder to avoid intermediate string allocations from chained ReplaceAll/ToLower.
 func normalizeUnsupportedMemoType(memoType string) string {
 	switch memoType {
 	case "hash", "return":
 		return memoType
 	}
 
-	switch strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(memoType, "_", ""), "-", "")) {
+	var sb strings.Builder
+	sb.Grow(len(memoType))
+	for i := 0; i < len(memoType); i++ {
+		c := memoType[i]
+		if c == '_' || c == '-' {
+			continue
+		}
+		if 'A' <= c && c <= 'Z' {
+			c += 'a' - 'A'
+		}
+		sb.WriteByte(c)
+	}
+
+	switch sb.String() {
 	case "memohash":
 		return "hash"
 	case "memoreturn":
@@ -27,9 +40,9 @@ func normalizeUnsupportedMemoType(memoType string) string {
 	}
 }
 
-// ExtractRouting identifies the deposit routing destination and identifier from a Stellar 
-// payment input. It implements the standard priority policy where M-address identifiers 
-// take precedence over any provided memo. Returns a RoutingResult with the decoded 
+// ExtractRouting identifies the deposit routing destination and identifier from a Stellar
+// payment input. It implements the standard priority policy where M-address identifiers
+// take precedence over any provided memo. Returns a RoutingResult with the decoded
 // state and applicable warnings.
 func ExtractRouting(input RoutingInput) RoutingResult {
 	if input.SourceAccount != "" {
@@ -94,10 +107,13 @@ func ExtractRouting(input RoutingInput) RoutingResult {
 			}
 		}
 
-		warnings := append([]address.Warning{}, parsed.Warnings...)
+		// Pre-allocate with capacity for existing warnings plus at most one more.
+		warnings := make([]address.Warning, 0, len(parsed.Warnings)+1)
+		warnings = append(warnings, parsed.Warnings...)
 		memoValue := stringValue(input.MemoValue)
 
-		if input.MemoType == "id" || (input.MemoType == "text" && digitsOnlyRegex.MatchString(memoValue)) {
+		// isAllDigits replaces the regex match to avoid heap allocation.
+		if input.MemoType == "id" || (input.MemoType == "text" && isAllDigits(memoValue)) {
 			warnings = append(warnings, address.Warning{
 				Code:     address.WarnMemoPresentWithMuxed,
 				Severity: "warn",
@@ -121,7 +137,9 @@ func ExtractRouting(input RoutingInput) RoutingResult {
 
 	var routingID *RoutingID
 	routingSource := "none"
-	warnings := append([]address.Warning{}, parsed.Warnings...)
+	// Pre-allocate with capacity for existing address warnings plus at most two memo warnings.
+	warnings := make([]address.Warning, 0, len(parsed.Warnings)+2)
+	warnings = append(warnings, parsed.Warnings...)
 	memoValue := stringValue(input.MemoValue)
 
 	if input.MemoType == "id" {
@@ -153,19 +171,32 @@ func ExtractRouting(input RoutingInput) RoutingResult {
 			})
 		}
 	} else if unsupportedMemoType := normalizeUnsupportedMemoType(input.MemoType); unsupportedMemoType != "" {
+		// Use pre-computed string literals for known memo types to avoid string concatenation.
+		var msg string
+		switch unsupportedMemoType {
+		case "hash":
+			msg = "Memo type hash is not supported for routing."
+		case "return":
+			msg = "Memo type return is not supported for routing."
+		}
 		warnings = append(warnings, address.Warning{
 			Code:     address.WarnUnsupportedMemoType,
 			Severity: "warn",
-			Message:  "Memo type " + unsupportedMemoType + " is not supported for routing.",
+			Message:  msg,
 			Context: &address.WarningContext{
 				MemoType: unsupportedMemoType,
 			},
 		})
 	} else if input.MemoType != "none" {
+		// Use strings.Builder to avoid the two intermediate allocations from "prefix" + var concatenation.
+		var sb strings.Builder
+		sb.Grow(len("Unrecognized memo type: ") + len(input.MemoType))
+		sb.WriteString("Unrecognized memo type: ")
+		sb.WriteString(input.MemoType)
 		warnings = append(warnings, address.Warning{
 			Code:     address.WarnUnsupportedMemoType,
 			Severity: "warn",
-			Message:  "Unrecognized memo type: " + input.MemoType,
+			Message:  sb.String(),
 			Context: &address.WarningContext{
 				MemoType: "unknown",
 			},
