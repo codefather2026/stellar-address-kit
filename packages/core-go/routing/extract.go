@@ -48,21 +48,12 @@ func ExtractRouting(input RoutingInput) RoutingResult {
 
 	parsed, err := address.Parse(input.Destination)
 	if err != nil {
-		addrErr, ok := err.(*address.AddressError)
-		if !ok {
-			addrErr = &address.AddressError{
-				Code:    address.ErrUnknownPrefix,
-				Input:   input.Destination,
-				Message: err.Error(),
-			}
-		}
-
 		return RoutingResult{
 			RoutingSource: "none",
 			Warnings:      []address.Warning{},
 			DestinationError: &DestinationError{
-				Code:    addrErr.Code,
-				Message: addrErr.Message,
+				Code:    address.ErrUnknownPrefix,
+				Message: err.Error(),
 			},
 		}
 	}
