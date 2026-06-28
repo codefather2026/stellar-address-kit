@@ -1,9 +1,6 @@
 package address
 
-import (
-"errors"
-"fmt"
-)
+import "fmt"
 
 // ErrorCode represents specific error types for pattern matching
 type ErrorCode string
@@ -19,7 +16,7 @@ ErrRejectedHashX            ErrorCode = "REJECTED_HASH_X"
 ErrFederationAddressNotSupported ErrorCode = "FEDERATION_ADDRESS_NOT_SUPPORTED"
 )
 
-// RoutingError is the main custom error type supporting errors.Is and errors.As
+// RoutingError is the main custom error type
 type RoutingError struct {
 Code    ErrorCode
 Input   string
@@ -30,20 +27,6 @@ func (e RoutingError) Error() string {
 return e.Message
 }
 
-// Unwrap supports errors.Is / errors.As chaining
-func (e RoutingError) Unwrap() error {
-return nil
-}
-
-// Common error variables for direct comparison
-var (
-ErrInvalidChecksumError       = RoutingError{Code: ErrInvalidChecksum, Message: "invalid checksum"}
-ErrInvalidBase32Error         = RoutingError{Code: ErrInvalidBase32, Message: "invalid base32 encoding"}
-ErrInvalidLengthError         = RoutingError{Code: ErrInvalidLength, Message: "invalid address length"}
-ErrUnknownPrefixError         = RoutingError{Code: ErrUnknownPrefix, Message: "unknown address prefix"}
-ErrFederationAddressNotSupportedError = RoutingError{Code: ErrFederationAddressNotSupported, Message: "federation address not supported"}
-)
-
 // Is allows errors.Is to match by Code
 func (e RoutingError) Is(target error) bool {
 if targetErr, ok := target.(RoutingError); ok {
@@ -51,3 +34,12 @@ return e.Code == targetErr.Code
 }
 return false
 }
+
+// Common error variables
+var (
+ErrInvalidChecksumError       = RoutingError{Code: ErrInvalidChecksum, Message: "invalid checksum"}
+ErrInvalidBase32Error         = RoutingError{Code: ErrInvalidBase32, Message: "invalid base32 encoding"}
+ErrInvalidLengthError         = RoutingError{Code: ErrInvalidLength, Message: "invalid address length"}
+ErrUnknownPrefixError         = RoutingError{Code: ErrUnknownPrefix, Message: "unknown address prefix"}
+ErrFederationAddressNotSupportedError = RoutingError{Code: ErrFederationAddressNotSupported, Message: "federation address not supported"}
+)

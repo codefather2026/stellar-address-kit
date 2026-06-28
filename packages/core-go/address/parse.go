@@ -6,14 +6,11 @@ import (
 )
 
 // Parse parses a Stellar address string into an Address struct.
-// For muxed accounts (KindM), BaseG and MuxedID are populated; for other kinds,
-// these fields will be empty/zero. Returns RoutingError for better pattern matching.
 func Parse(input string) (*Address, error) {
 kind, err := Detect(input)
 if err != nil {
 var code ErrorCode = ErrUnknownPrefix
 
-// Map old errors to new typed errors where possible
 switch {
 case errors.Is(err, ErrInvalidChecksumError):
 code = ErrInvalidChecksum
@@ -36,7 +33,6 @@ Kind: kind,
 Raw:  raw,
 }
 
-// For muxed accounts, also populate BaseG and MuxedID.
 if kind == KindM {
 versionByte, payload, err := DecodeStrKey(raw)
 if err != nil {
