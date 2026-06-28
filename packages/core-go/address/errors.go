@@ -41,3 +41,9 @@ ErrInvalidLengthError         = RoutingError{Code: ErrInvalidLength, Message: "i
 ErrUnknownPrefixError         = RoutingError{Code: ErrUnknownPrefix, Message: "unknown address prefix"}
 ErrFederationAddressNotSupportedError = RoutingError{Code: ErrFederationAddressNotSupported, Message: "federation address not supported"}
 )
+
+// Legacy / additional error for version byte
+var ErrUnknownVersionByteError = RoutingError{
+Code:    ErrUnknownPrefix,
+Message: "unknown version byte",
+}
