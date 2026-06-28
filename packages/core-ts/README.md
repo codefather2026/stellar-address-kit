@@ -35,6 +35,16 @@ if (!result.destinationError) {
 }
 ```
 
+## CLI Debugger
+
+After building or installing the package, you can inspect routing behavior from the terminal:
+
+```bash
+stellar-route --dest G... --memo 123 --type id
+```
+
+The command prints the `RoutingResult` object as pretty JSON, which is useful for checking muxed-address precedence, memo normalization, and routing warnings without writing a scratch script.
+
 ## Documentation
 
 For full guides, integration examples, and deep dives into the routing logic, see our [comprehensive Guides](https://github.com/Boxkit-Labs/stellar-address-kit/tree/main/docs/guides).
