@@ -2,6 +2,7 @@ package address
 
 import (
 "encoding/binary"
+"errors"
 "strings"
 )
 

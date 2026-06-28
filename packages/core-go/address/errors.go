@@ -1,7 +1,5 @@
 package address
 
-import "fmt"
-
 // ErrorCode represents specific error types for pattern matching
 type ErrorCode string
 
