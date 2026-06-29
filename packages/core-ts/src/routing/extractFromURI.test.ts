@@ -1,4 +1,5 @@
-import { extractRoutingFromURI, isSuccessfulURIResult } from "../src/lib/extractRoutingFromURI";
+import { isSuccessfulURIResult } from "../src/lib/extractRoutingFromURI";
+import { extractRoutingFromURI } from '../lib/extractRoutingFromURI';
 
 describe("extractRoutingFromURI", () => {
   describe("scheme validation", () => {
