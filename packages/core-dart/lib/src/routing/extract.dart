@@ -7,7 +7,11 @@ import 'memo.dart';
 /// Extracts deposit routing information from a Stellar payment input.
 /// Following the standard priority policy, M-address identifiers take
 /// precedence over any provided memo.
-RoutingResult extractRouting(RoutingInput input) {
+///
+/// This is the synchronous variant for pure string parsing.
+/// For future compatibility with async network checks (Federation, SEP-0029),
+/// use [extractRouting] instead.
+RoutingResult extractRoutingSync(RoutingInput input) {
   final trimmed = input.destination.trim();
   if (trimmed.isEmpty) {
     throw const ExtractRoutingException('Invalid input: destination must be a non-empty string.');
@@ -214,5 +218,14 @@ RoutingResult extractRouting(RoutingInput input) {
     source: routingSource,
     warnings: warnings,
   );
+}
+
+/// Extracts deposit routing information with support for future
+/// async network checks (Federation, SEP-0029).
+///
+/// Currently delegates to [extractRoutingSync]; when async capabilities
+/// are added this function will perform the additional checks.
+Future<RoutingResult> extractRouting(RoutingInput input) async {
+  return extractRoutingSync(input);
 }
 
