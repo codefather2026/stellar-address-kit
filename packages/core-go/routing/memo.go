@@ -1,39 +1,59 @@
 package routing
 
 import (
-	"math/big"
-	"regexp"
 	"strings"
 
 	"github.com/Boxkit-Labs/stellar-address-kit/packages/core-go/address"
 )
 
-var digitsOnly = regexp.MustCompile(`^\d+$`)
-var uint64Max, _ = new(big.Int).SetString("18446744073709551615", 10)
+// uint64MaxStr is the decimal string representation of math.MaxUint64.
+const uint64MaxStr = "18446744073709551615"
 
 type NormalizeResult struct {
 	Normalized string
 	Warnings   []address.Warning
 }
 
-func NormalizeMemoTextID(s string) NormalizeResult {
-	warnings := []address.Warning{}
+// isAllDigits reports whether s is non-empty and contains only ASCII decimal digits.
+// This is used instead of a compiled regexp to avoid heap allocations on the hot path.
+func isAllDigits(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
 
-	// Step 1: Whitespace - not trimmed.
-	// Step 2: Empty string.
-	// Step 3: Any non-digit character.
-	if s == "" || !digitsOnly.MatchString(s) {
-		return NormalizeResult{Normalized: "", Warnings: warnings}
+// fitsUint64 reports whether a canonical (no leading zeros) decimal string is within
+// the uint64 range. Uses lexicographic comparison to avoid big.Int allocation.
+func fitsUint64(s string) bool {
+	if len(s) < len(uint64MaxStr) {
+		return true
+	}
+	if len(s) > len(uint64MaxStr) {
+		return false
+	}
+	return s <= uint64MaxStr
+}
+
+func NormalizeMemoTextID(s string) NormalizeResult {
+	if s == "" || !isAllDigits(s) {
+		return NormalizeResult{}
 	}
 
-	// Step 4: Strip leading zeros
+	// Strip leading zeros; strings.TrimLeft returns a sub-slice (no allocation).
 	normalized := strings.TrimLeft(s, "0")
 	if normalized == "" {
 		normalized = "0"
 	}
 
+	var warnings []address.Warning
 	if normalized != s {
-		warnings = append(warnings, address.Warning{
+		warnings = []address.Warning{{
 			Code:     address.WarnNonCanonicalRoutingID,
 			Severity: "warn",
 			Message:  "Memo routing ID had leading zeros. Normalized to canonical decimal.",
@@ -41,13 +61,11 @@ func NormalizeMemoTextID(s string) NormalizeResult {
 				Original:   s,
 				Normalized: normalized,
 			},
-		})
+		}}
 	}
 
-	// Step 5: Check uint64 max
-	val, ok := new(big.Int).SetString(normalized, 10)
-	if !ok || val.Cmp(uint64Max) > 0 {
-		return NormalizeResult{Normalized: "", Warnings: warnings}
+	if !fitsUint64(normalized) {
+		return NormalizeResult{Warnings: warnings}
 	}
 
 	return NormalizeResult{Normalized: normalized, Warnings: warnings}
