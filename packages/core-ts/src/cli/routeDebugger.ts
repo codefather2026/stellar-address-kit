@@ -6,6 +6,15 @@ export type CliIo = {
   stderr: (message: string) => void;
 };
 
+function stringifyCliResult(value: unknown): string {
+  return JSON.stringify(
+    value,
+    (_, nestedValue) =>
+      typeof nestedValue === "bigint" ? nestedValue.toString() : nestedValue,
+    2
+  );
+}
+
 const VALID_MEMO_TYPES: KnownMemoType[] = [
   "none",
   "id",
@@ -125,7 +134,7 @@ export async function runRouteDebuggerCli(
       sourceAccount: options.sourceAccount ?? null,
     });
 
-    io.stdout(`${JSON.stringify(result, null, 2)}\n`);
+    io.stdout(`${stringifyCliResult(result)}\n`);
     return 0;
   } catch (error) {
     if (error instanceof Error && error.message === "__HELP__") {
