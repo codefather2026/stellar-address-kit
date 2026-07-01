@@ -1,10 +1,15 @@
-import { isSuccessfulURIResult } from "../src/lib/extractRoutingFromURI";
-import { extractRoutingFromURI } from '../lib/extractRoutingFromURI';
+import { describe, expect, it } from "vitest";
+import {
+  extractRoutingFromURI,
+  isSuccessfulURIResult,
+} from "./extractFromURI";
 
 describe("extractRoutingFromURI", () => {
   describe("scheme validation", () => {
     it("rejects URIs without web+stellar scheme", () => {
-      const result = extractRoutingFromURI("https://example.com/pay?destination=G...");
+      const result = extractRoutingFromURI(
+        "https://example.com/pay?destination=G..."
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.code).toBe("INVALID_URI");
@@ -22,9 +27,7 @@ describe("extractRoutingFromURI", () => {
 
   describe("operation validation", () => {
     it("rejects unsupported 'tx' operation", () => {
-      const result = extractRoutingFromURI(
-        "web+stellar:tx?xdr=AAAA..."
-      );
+      const result = extractRoutingFromURI("web+stellar:tx?xdr=AAAA...");
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.code).toBe("UNSUPPORTED_OPERATION");
@@ -67,7 +70,9 @@ describe("extractRoutingFromURI", () => {
       );
       expect(result.success).toBe(true);
       if (isSuccessfulURIResult(result)) {
-        expect(result.rawParams.destination).toBe("GCALNQQBXAPZ2WIRSDDBMSTAKCUH5SG6U76YBFLQLIXJTF7FE5AX7AOO");
+        expect(result.rawParams.destination).toBe(
+          "GCALNQQBXAPZ2WIRSDDBMSTAKCUH5SG6U76YBFLQLIXJTF7FE5AX7AOO"
+        );
         expect(result.rawParams.memo).toBeUndefined();
         expect(result.rawParams.memoType).toBeUndefined();
       }
@@ -81,8 +86,8 @@ describe("extractRoutingFromURI", () => {
       if (isSuccessfulURIResult(result)) {
         expect(result.rawParams.memo).toBe("123");
         expect(result.rawParams.memoType).toBe("MEMO_ID");
-        // routing should contain the memo-derived routingId
-        expect(result.routing).toBeDefined();
+        expect(result.routing.routingId).toBe("123");
+        expect(result.routing.routingSource).toBe("memo");
       }
     });
 
@@ -112,13 +117,19 @@ describe("extractRoutingFromURI", () => {
       const result = extractRoutingFromURI(uri);
       expect(result.success).toBe(true);
       if (isSuccessfulURIResult(result)) {
-        expect(result.rawParams.destination).toBe("GCALNQQBXAPZ2WIRSDDBMSTAKCUH5SG6U76YBFLQLIXJTF7FE5AX7AOO");
+        expect(result.rawParams.destination).toBe(
+          "GCALNQQBXAPZ2WIRSDDBMSTAKCUH5SG6U76YBFLQLIXJTF7FE5AX7AOO"
+        );
         expect(result.rawParams.amount).toBe("100.1234567");
         expect(result.rawParams.assetCode).toBe("USDC");
-        expect(result.rawParams.assetIssuer).toBe("GAP5LETOV6YIE62YAM56STDANPRDO7ZFDBGSNHJQIYGGKSMOZAHOOS2S");
+        expect(result.rawParams.assetIssuer).toBe(
+          "GAP5LETOV6YIE62YAM56STDANPRDO7ZFDBGSNHJQIYGGKSMOZAHOOS2S"
+        );
         expect(result.rawParams.memo).toBe("invoice#123");
         expect(result.rawParams.memoType).toBe("MEMO_TEXT");
-        expect(result.rawParams.callback).toBe("url:https://example.com/callback");
+        expect(result.rawParams.callback).toBe(
+          "url:https://example.com/callback"
+        );
         expect(result.rawParams.msg).toBe("Pay me with lumens");
         expect(result.rawParams.originDomain).toBe("example.com");
       }
@@ -132,9 +143,9 @@ describe("extractRoutingFromURI", () => {
       );
       expect(result.success).toBe(true);
       if (isSuccessfulURIResult(result)) {
-        // extractRouting should expand M-address to G-address + routingId
-        expect(result.routing.address).toMatch(/^G/);
+        expect(result.routing.destinationBaseAccount).toMatch(/^G/);
         expect(result.routing.routingId).toBeDefined();
+        expect(result.routing.routingSource).toBe("muxed");
       }
     });
   });
@@ -152,10 +163,9 @@ describe("extractRoutingFromURI", () => {
       const result = extractRoutingFromURI(
         "web+stellar:pay?destination=GCALNQQBXAPZ2WIRSDDBMSTAKCUH5SG6U76YBFLQLIXJTF7FE5AX7AOO&memo=%ZZ"
       );
-      // Should still succeed with raw memo value if decode fails
       expect(result.success).toBe(true);
       if (isSuccessfulURIResult(result)) {
-        expect(result.rawParams.memo).toBe("%ZZ"); // Raw fallback
+        expect(result.rawParams.memo).toBe("%ZZ");
       }
     });
 
@@ -165,7 +175,9 @@ describe("extractRoutingFromURI", () => {
       );
       expect(result.success).toBe(true);
       if (isSuccessfulURIResult(result)) {
-        expect(result.rawParams.destination).toBe("GCALNQQBXAPZ2WIRSDDBMSTAKCUH5SG6U76YBFLQLIXJTF7FE5AX7AOO");
+        expect(result.rawParams.destination).toBe(
+          "GCALNQQBXAPZ2WIRSDDBMSTAKCUH5SG6U76YBFLQLIXJTF7FE5AX7AOO"
+        );
       }
     });
   });
